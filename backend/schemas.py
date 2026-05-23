@@ -1,9 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-
-# ── Auth Schemas ──────────────────────────────────────────────
 
 class UserCreate(BaseModel):
     username: str
@@ -17,7 +15,8 @@ class UserResponse(BaseModel):
     email: str
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True
 
 
 class LoginRequest(BaseModel):
@@ -33,8 +32,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-
-# ── Task Schemas ──────────────────────────────────────────────
 
 class TaskCreate(BaseModel):
     title: str
@@ -56,11 +53,12 @@ class TaskResponse(BaseModel):
     updated_at: datetime
     owner_id: int
 
-    model_config = {"from_attributes": True}
+    class Config:
+        orm_mode = True
 
 
 class PaginatedTasks(BaseModel):
     total: int
     page: int
     page_size: int
-    tasks: list[TaskResponse]
+    tasks: List[TaskResponse]
