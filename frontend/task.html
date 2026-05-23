@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Tasks – Task Manager</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <a class="brand" href="tasks.html">✅ Task Manager</a>
+    <div class="nav-links">
+      <span id="welcomeMsg" style="font-size:0.85rem; color:#666;"></span>
+      <button id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>My Tasks</h1>
+
+    <!-- Create Task -->
+    <div class="card">
+      <h2>New Task</h2>
+      <div id="createAlert" class="alert"></div>
+      <label>Title</label>
+      <input type="text" id="newTitle" placeholder="Task title..." />
+      <label>Description (optional)</label>
+      <textarea id="newDesc" placeholder="Add a description..."></textarea>
+      <button class="btn btn-primary" onclick="createTask()">Add Task</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <button class="active" data-filter="all"       onclick="setFilter('all', this)">All</button>
+      <button               data-filter="pending"    onclick="setFilter('pending', this)">Pending</button>
+      <button               data-filter="completed"  onclick="setFilter('completed', this)">Completed</button>
+    </div>
+
+    <!-- Task List -->
+    <div id="taskList"></div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none;">
+      <button id="prevBtn" onclick="changePage(-1)">← Prev</button>
+      <span id="pageInfo"></span>
+      <button id="nextBtn" onclick="changePage(1)">Next →</button>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "login.html";
+
+    document.getElementById("welcomeMsg").textContent =
+      "Hi, " + (localStorage.getItem("username") || "user");
+
+    let currentPage = 1;
+    let currentFilter = "all";
+    let totalPages = 1;
+
+    async function loadTasks() {
+      const listEl = document.getElementById("taskList");
+      listEl.innerHTML = '<p class="empty-msg">Loading...</p>';
+
+      let url = `/tasks?page=${currentPage}&page_size=5`;
+      if (currentFilter === "completed") url += "&completed=true";
+      if (currentFilter === "pending")   url += "&completed=false";
+
+      try {
+        const data = await api(url, "GET", null, token);
+        renderTasks(data);
+      } catch (e) {
+        listEl.innerHTML = `<p class="empty-msg" style="color:#e53e3e;">${e.message}</p>`;
+      }
+    }
+
+    function renderTasks(data) {
+      const listEl = document.getElementById("taskList");
+      const pagEl  = document.getElementById("pagination");
+
+      totalPages = Math.ceil(data.total / data.page_size) || 1;
+
+      if (data.tasks.length === 0) {
+        listEl.innerHTML = '<p class="empty-msg">No tasks found.</p>';
+        pagEl.style.display = "none";
+        return;
+      }
+
+      listEl.innerHTML = data.tasks.map(t => `
+        <div class="task-item ${t.completed ? 'done' : ''}" id="task-${t.id}">
+          <div class="task-body">
+            <div class="task-title">${escHtml(t.title)}</div>
+            ${t.description ? `<div class="task-desc">${escHtml(t.description)}</div>` : ''}
+            <div class="task-meta">
+              <span class="badge ${t.completed ? 'badge-done' : 'badge-pending'}">
+                ${t.completed ? 'Completed' : 'Pending'}
+              </span>
+              &nbsp;· Created ${new Date(t.created_at).toLocaleDateString()}
+            </div>
+          </div>
+          <div class="task-actions">
+            ${!t.completed
+              ? `<button class="btn btn-success btn-sm" onclick="markDone(${t.id})">✓ Done</button>`
+              : ''}
+            <button class="btn btn-danger btn-sm" onclick="deleteTask(${t.id})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+
+      pagEl.style.display = totalPages > 1 ? "flex" : "none";
+      document.getElementById("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById("prevBtn").disabled = currentPage <= 1;
+      document.getElementById("nextBtn").disabled = currentPage >= totalPages;
+    }
+
+    async function createTask() {
+      const title = document.getElementById("newTitle").value.trim();
+      const description = document.getElementById("newDesc").value.trim();
+      if (!title) return showCreateAlert("Title is required.", "error");
+
+      try {
+        await api("/tasks", "POST", { title, description: description || null }, token);
+        document.getElementById("newTitle").value = "";
+        document.getElementById("newDesc").value  = "";
+        showCreateAlert("Task created!", "success");
+        currentPage = 1;
+        loadTasks();
+      } catch (e) {
+        showCreateAlert(e.message, "error");
+      }
+    }
+
+    async function markDone(id) {
+      try {
+        await api(`/tasks/${id}`, "PUT", { completed: true }, token);
+        loadTasks();
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteTask(id) {
+      if (!confirm("Delete this task?")) return;
+      try {
+        await api(`/tasks/${id}`, "DELETE", null, token);
+        loadTasks();
+      } catch (e) { alert(e.message); }
+    }
+
+    function setFilter(f, btn) {
+      currentFilter = f;
+      currentPage   = 1;
+      document.querySelectorAll(".filter-bar button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      loadTasks();
+    }
+
+    function changePage(dir) {
+      currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+      loadTasks();
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      window.location.href = "login.html";
+    }
+
+    function showCreateAlert(msg, type) {
+      const el = document.getElementById("createAlert");
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+      el.style.display = "block";
+      setTimeout(() => { el.style.display = "none"; }, 2500);
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
