@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Task Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .auth-wrap { max-width: 400px; margin: 3rem auto; padding: 0 1rem; }
+    .auth-footer { text-align: center; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="brand" href="index.html">✅ Task Manager</a>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="card">
+      <h2>Login</h2>
+      <div id="alert" class="alert"></div>
+
+      <label>Username</label>
+      <input type="text" id="username" placeholder="johndoe" onkeydown="if(event.key==='Enter') login()" />
+
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') login()" />
+
+      <button class="btn btn-primary btn-full" onclick="login()">Login</button>
+    </div>
+    <div class="auth-footer">
+      No account? <a href="register.html" class="link">Register</a>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    if (localStorage.getItem("token")) window.location.href = "tasks.html";
+
+    async function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+      if (!username || !password) return showAlert("Both fields are required.", "error");
+
+      try {
+        const data = await api("/login", "POST", { username, password });
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("username", username);
+        window.location.href = "tasks.html";
+      } catch (e) {
+        showAlert(e.message, "error");
+      }
+    }
+
+    function showAlert(msg, type) {
+      const el = document.getElementById("alert");
+      el.textContent = msg;
+      el.className = `alert alert-${type}`;
+      el.style.display = "block";
+    }
+  </script>
+</body>
+</html>
