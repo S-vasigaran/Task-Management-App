@@ -15,7 +15,7 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    task = models.Task(**task_data.model_dump(), owner_id=current_user.id)
+    task = models.Task(**task_data.dict(), owner_id=current_user.id)
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -70,7 +70,7 @@ def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    update_data = task_data.model_dump(exclude_unset=True)
+    update_data = task_data.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(task, key, value)
 
