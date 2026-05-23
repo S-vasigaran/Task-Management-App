@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .hero { text-align: center; padding: 5rem 1rem; }
+    .hero h1 { font-size: 2rem; margin-bottom: 0.75rem; }
+    .hero p  { color: #666; margin-bottom: 2rem; }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="brand" href="index.html">✅ Task Manager</a>
+    <div class="nav-links">
+      <a href="login.html">Login</a>
+      <a href="register.html">Register</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>Manage Your Tasks</h1>
+    <p>A simple task manager with JWT authentication.</p>
+    <div class="hero-btns">
+      <a href="register.html" class="btn btn-primary">Get Started</a>
+      <a href="login.html"    class="btn" style="border:1px solid #ccc; background:#fff;">Login</a>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem("token")) window.location.href = "tasks.html";
+  </script>
+</body>
+</html>
